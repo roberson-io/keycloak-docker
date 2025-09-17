@@ -35,7 +35,7 @@ services:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
-    command: start --optimized
+    command: start
     depends_on:
       postgres:
         condition: service_healthy
