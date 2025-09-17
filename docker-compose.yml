@@ -1,0 +1,83 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: keycloak_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-keycloak}
+      POSTGRES_USER: ${DB_USER:-keycloak}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - keycloak_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-keycloak}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    container_name: keycloak_server
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-keycloak}
+      KC_DB_USERNAME: ${DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_HOSTNAME: ${KEYCLOAK_DOMAIN}
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: true
+      KC_HTTP_ENABLED: true
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
+    command: start --optimized
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - keycloak_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3&lt;&gt;/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' &gt;&amp;3 && grep -q '200 OK' &lt;&amp;3"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  nginx:
+    image: nginx:1.28-alpine
+    container_name: keycloak_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/keycloak.conf:/etc/nginx/conf.d/keycloak.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - keycloak_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
+networks:
+  keycloak_network:
+    driver: bridge
+    internal: false
+
+volumes:
+  postgres_data:
+    driver: local
