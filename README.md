@@ -78,6 +78,9 @@ This repository provides an example Keycloak deployment using Docker Compose wit
 
 6. **Switch to HTTPS Configuration**
    ```bash
+   # Replace domain placeholder in HTTPS config
+   sed -i 's/DOMAIN_PLACEHOLDER/your-keycloak-domain.com/g' nginx/keycloak.conf
+
    # Update docker-compose to use full HTTPS config
    sed -i 's|keycloak-http-only.conf|keycloak.conf|g' docker-compose.yml
 
