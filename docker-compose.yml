@@ -61,8 +61,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot:ro
     depends_on:
-      keycloak:
-        condition: service_healthy
+      - keycloak
     networks:
       - keycloak_network
     restart: unless-stopped
