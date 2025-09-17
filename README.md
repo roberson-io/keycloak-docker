@@ -74,6 +74,12 @@ This repository provides an example Keycloak deployment using Docker Compose wit
      --email your-email@domain.com \
      --agree-tos --no-eff-email \
      -d your-keycloak-domain.com
+   ```
+
+6. **Switch to HTTPS Configuration**
+   ```bash
+   # Update docker-compose to use full HTTPS config
+   sed -i 's|keycloak-http-only.conf|keycloak.conf|g' docker-compose.yml
 
    # Restart nginx to enable HTTPS redirect
    docker compose restart nginx
